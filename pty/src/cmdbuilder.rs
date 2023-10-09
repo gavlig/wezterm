@@ -201,6 +201,7 @@ pub struct CommandBuilder {
     #[cfg(unix)]
     pub(crate) umask: Option<libc::mode_t>,
     controlling_tty: bool,
+    login_shell: bool
 }
 
 impl CommandBuilder {
@@ -214,6 +215,7 @@ impl CommandBuilder {
             #[cfg(unix)]
             umask: None,
             controlling_tty: true,
+            login_shell: true,
         }
     }
 
@@ -226,6 +228,7 @@ impl CommandBuilder {
             #[cfg(unix)]
             umask: None,
             controlling_tty: true,
+            login_shell: true
         }
     }
 
@@ -253,6 +256,20 @@ impl CommandBuilder {
             #[cfg(unix)]
             umask: None,
             controlling_tty: true,
+			login_shell: true,
+        }
+    }
+
+	/// Variation of new_default_prog without login shell
+    pub fn new_default_prog_no_login_shell() -> Self {
+        Self {
+            args: vec![],
+            envs: get_base_env(),
+            cwd: None,
+            #[cfg(unix)]
+            umask: None,
+            controlling_tty: true,
+            login_shell: false,
         }
     }
 
@@ -487,8 +504,10 @@ impl CommandBuilder {
 
             // Run the shell as a login shell by prefixing the shell's
             // basename with `-` and setting that as argv0
-            let basename = shell.rsplit('/').next().unwrap_or(&shell);
-            cmd.arg0(&format!("-{}", basename));
+            if self.login_shell {
+                let basename = shell.rsplit('/').next().unwrap_or(&shell);
+                cmd.arg0(&format!("-{}", basename));
+            }
             cmd
         } else {
             let resolved = self.search_path(&self.args[0], dir)?;
